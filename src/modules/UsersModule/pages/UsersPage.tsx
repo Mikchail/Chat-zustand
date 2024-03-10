@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import { User } from '../../../types/User';
 import { useUsersStore } from '../usersStore';
 import { useChatStore } from '@/modules/ChatModule/chatStore';
-import { useUserStore } from '@/modules/UserModule/userStore';
+import { useUserStore, getUserSelector } from '@/modules/UserModule/userStore';
 import { UsersContainer } from '../components/UsersContainer';
 // import { UsersContainer } from '../components/UsersContainer';
 
 export const UsersPage = () => {
-  const currentUser = useUserStore((state) => state.user)
+  const currentUser = useUserStore(getUserSelector)
   const { users, status } = useUsersStore((state) => ({
     users: state.users,
     status: state.status,
@@ -33,7 +33,7 @@ export const UsersPage = () => {
       status={status}
       openPrivateChat={openPrivateChat}
       users={users}
-      currentUser={currentUser as User}
+      currentUser={currentUser}
     />
   );
 }

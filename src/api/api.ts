@@ -129,8 +129,8 @@ class ApiService {
     
   }
 
-  // const apiService = new ApiService('http://192.168.0.102:8000/');
-  const apiService = new ApiService('https://1149-2-95-186-226.ngrok-free.app/');
+  const apiService = new ApiService('http://127.0.0.1:3000/');
+  // const apiService = new ApiService('https://1149-2-95-186-226.ngrok-free.app/');
    // Пример использования:
   /*
   apiService.interceptors.request.use((request) => {

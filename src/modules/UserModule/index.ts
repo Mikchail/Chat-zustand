@@ -1,2 +1,2 @@
-export { useUserStore, getUserSelector } from './userStore'
-export { ProfileScreen } from './screens/ProfileScreen'
+export { ProfilePage } from './pages/ProfilePage'
+export { getUserSelector, useUserStore } from './userStore'

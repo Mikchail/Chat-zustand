@@ -1,0 +1,27 @@
+.chat-border {
+  border: 1px solid black;
+  justify-content: start;
+  padding: 5px;
+  transition: all 0.4s;
+  cursor: pointer;
+
+  &:hover {
+    background: gray
+  }
+}
+
+.user-message {
+  // border: 1px solid ;
+  align-self: start;
+  border-radius: 40px;
+  background-color: rgb(92, 101, 200);
+  padding: 5px 15px;
+  color: white;
+}
+
+.user-message--current {
+  align-self: end;
+  border-radius: 40px;
+  background-color: aquamarine;
+  padding: 5px 15px;
+}

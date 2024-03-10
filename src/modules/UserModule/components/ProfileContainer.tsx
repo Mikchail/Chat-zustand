@@ -23,7 +23,7 @@ export const ProfileContainer = ({ onLogout, status, error, user }: ProfileProps
     }
     return (
       <Card className="flex space-y-4 p-5 text-2xl font-bold flex flex-col">
-        <ProfileInfo title="Имя:" info={user.username} />
+        <ProfileInfo title="Имя:" info={user.name} />
         <ProfileInfo title="Почта:" info={user.email} />
         {/* <ProfileInfo title="Дата рождения:" info={formatToClientDate(data.dateOfBirth)} />
                     <ProfileInfo title="Обо мне:" info={data.bio} /> */}

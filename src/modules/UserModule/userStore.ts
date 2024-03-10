@@ -1,53 +1,46 @@
-import { apiService } from '../../api/api';
+import { apiService } from '../../api/api'
 import { create } from 'zustand'
-import { tokenHeader } from '../AuthModule/authStore';
-import { User } from '../../types/User';
+import { tokenHeader } from '../AuthModule/authStore'
+import { User } from '../../types/User'
 
 interface IUserStore {
-  status: 'done' | 'loading' | 'success' | 'error';
-  error: string;
-  user: User;
-  curretnUser: User | null;
-  getUser: () => Promise<void>;
-  updateUser: () => Promise<void>;
-  deleteUser: () => Promise<void>;
+  status: 'init' | 'loading' | 'success' | 'error'
+  error: string
+  // user: User
+  currentUser: User | null
+  getUser: () => Promise<void>
+  updateUser: () => Promise<void>
+  deleteUser: () => Promise<void>
 }
-
 
 export interface IUserResponse {
-  username: string;
-  email: string;
-  id: number;
+  name: string
+  email: string
+  id: number
 }
 
-
 export const useUserStore = create<IUserStore>((set, get) => ({
-  status: 'done',
+  status: 'init',
   error: '',
-  curretnUser: null,
-  get user(): User {
-    const curretnUser = get().curretnUser
-    if (!curretnUser) {
-      // get().getUser()
-      return {
-        id: "1",
-        username: "Тесовый Павел",
-        email: "Pavel@googlemugle.sru"
-      }
-    }
-    return curretnUser;
-  },
+  currentUser: null,
   getUser: async () => {
+    console.log('RUN getUser status', get().status)
+
+    if (get().status === 'loading' || get().status === 'success') {
+      return
+    }
     set({ status: 'loading' })
     try {
-      const res = await apiService.get("users/me", {
-        ...tokenHeader()
+      const res = await apiService.get('api/user/me', {
+        ...tokenHeader(),
       })
-      const user = await res.json() as IUserResponse;
-      set({ status: 'success', user: transformUser(user) })
+
+      const user = (await res.json()) as IUserResponse
+      console.log(user)
+      set({ status: 'success', currentUser: transformUser(user) })
     } catch (error) {
-      console.log({ error });
-      set({ status: 'error', error: `Возникла ошибка попробуйте снова чуть позже` || "error" })
+      console.log({ error })
+      set({ status: 'error', error: `Возникла ошибка попробуйте снова чуть позже` || 'error' })
       // return Promise.resolve("error")
     }
   },
@@ -61,9 +54,17 @@ export const useUserStore = create<IUserStore>((set, get) => ({
 
 const transformUser = (user: IUserResponse): User => ({
   id: user.id.toString(),
-  username: user.username,
-  email: user.email
+  name: user.name,
+  email: user.email,
 })
 
-
-export const getUserSelector = (state: IUserStore) => state.user
+export const getUserSelector = (state: IUserStore) => {
+  if (!state.currentUser) {
+    return {
+      id: '',
+      name: 'NONE',
+      email: 'none',
+    }
+  }
+  return state.currentUser
+}

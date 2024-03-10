@@ -7,6 +7,7 @@ import { RegisterPage } from '@/modules/AuthModule/pages/RegisterPage'
 import { ProfilePage } from '@/modules/UserModule/pages/ProfilePage'
 import { UsersPage } from '@/modules/UsersModule/pages/UsersPage'
 import { ChatPage } from '@/modules/ChatModule/pages/ChatPage'
+import { ChatsPage } from '@/modules/ChatModule/pages/ChatsPage'
 
 export default function Router() {
   const isAuthenticated = useAuthStore((state) => !!state.access_token)
@@ -40,6 +41,10 @@ export default function Router() {
       routes.push({
         path: "/chat/:chatId",
         element: <ChatPage />
+      })
+      routes.push({
+        path: "/chats",
+        element: <ChatsPage />
       })
     }
     return routes

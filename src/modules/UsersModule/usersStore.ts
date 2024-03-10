@@ -27,7 +27,7 @@ export interface IUsersResponse {
 export const useUsersStore = create<IUsersStore>((set, get) => ({
   status: 'done',
   error: '',
-  users: mockUsers,
+  users: [],
   total: 0,
   offset: 0,
   limit: 10,
@@ -44,17 +44,21 @@ export const useUsersStore = create<IUsersStore>((set, get) => ({
         return
 
       }
+      const oldUsers = [...get().users] 
       const queryParams = new URLSearchParams()
       queryParams.append('limit', limit.toString())
       queryParams.append('offset', offset_.toString())
-      const query = await apiService.get("users?" + queryParams, {
+      queryParams.append('loadedUserIds', JSON.stringify(oldUsers.map(o=> o.id))) // not work
+      const query = await apiService.get("api/users?" + queryParams, {
         ...tokenHeader()
       })
 
       const response = await query.json() as IUsersResponse;
+      console.log({response});
+      
       // console.log({users: response.items });
       const users = [
-        ...get().users,
+        ...oldUsers,
         ...response.items
       ]
       // console.log(users.map((user) => user.id));
@@ -73,6 +77,8 @@ export const useUsersStore = create<IUsersStore>((set, get) => ({
   },
   loadMore: async () => {
     try {
+      console.log("loadMore");
+      
       await get().getUsers()
     } catch (error) {
       console.log({ error });

@@ -33,9 +33,9 @@ export const RegisterPage = () => {
     }
     register(userName, email, password).then((response) => {
       if (response === "success") {
-        setUserName("")
-        setPassword("")
-        setEmail("")
+        // setUserName("")
+        // setPassword("")
+        // setEmail("")
       }
     })
   }, [email, userName, password, passwordRepeat, register]);

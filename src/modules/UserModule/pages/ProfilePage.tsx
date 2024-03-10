@@ -7,7 +7,7 @@ export const ProfilePage = () => {
   const logout = useAuthStore((state) => state.logout);
 
   const { user, status, error } = useUserStore((state) => ({
-    user: state.user,
+    user: state.currentUser,
     status: state.status,
     error: state.error,
   }));

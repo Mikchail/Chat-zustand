@@ -1,93 +1,98 @@
-import { useAuthStore } from "@/modules/AuthModule/authStore"
-import {
-  Navbar,
-  NavbarBrand,
-  NavbarContent,
-  NavbarItem,
-  Button,
-} from "@nextui-org/react"
+import { useAuthStore } from '@/modules/AuthModule/authStore'
+import { useUserStore } from '@/modules/UserModule/userStore'
+import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button } from '@nextui-org/react'
 // import { logout, selectIsAuthenticated } from "../../features/user/userSlice"
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from 'react-router-dom'
 
 export const Header = () => {
   const isAuthenticated = useAuthStore((state) => {
-    console.log("isAuthenticated", state);
     return !!state.access_token
   })
+  const getUser = useUserStore((state) => {
+    return state.getUser
+  })
+  const logout = useAuthStore((state) => {
+    return state.logout
+  })
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      getUser()
+    }
+  }, [isAuthenticated])
   // const { theme, toggleTheme } = useContext(ThemeContext)
   const navigate = useNavigate()
 
-  const hadleLogout = () => {
-    // dispatch(logout())
-    localStorage.removeItem('token')
-    navigate("/auth")
-  }
-
   const handleAuth = () => {
-    navigate("/auth")
+    navigate('/auth')
   }
   const handleRegistration = () => {
-    navigate("/registration")
+    navigate('/registration')
   }
   const handleProfile = () => {
-    navigate("/profile")
+    navigate('/profile')
   }
 
   const handleUsers = () => {
-    navigate("/users")
+    navigate('/users')
   }
 
   const handleChat = () => {
-    navigate("/chat") // temporary
+    navigate('/chat') // temporary
   }
+  const handleChats = () => {
+    navigate('/chats') // temporary
+  }
+
+  const handleLogout = async () => {
+    const confirmed = await confirm('Are you sure?')
+    if (confirmed) {
+      logout()
+    }
+
+    //  // temporary
+  }
+
   return (
     <Navbar>
-      <NavbarBrand onClick={() => navigate("/")} className="cursor-pointer hover">
+      <NavbarBrand onClick={() => navigate('/')} className="cursor-pointer hover">
         <p className="font-bold text-inherit">Network Social</p>
       </NavbarBrand>
 
       <NavbarContent justify="end">
-        {!isAuthenticated &&
+        {!isAuthenticated && (
           <>
-            <NavbarItem
-              className="cursor-pointer hover"
-              onClick={handleAuth}
-            >
+            <NavbarItem className="cursor-pointer hover" onClick={handleAuth}>
               Login
             </NavbarItem>
-            <NavbarItem
-              className="cursor-pointer hover"
-              onClick={handleRegistration}
-            >
+            <NavbarItem className="cursor-pointer hover" onClick={handleRegistration}>
               Registration
             </NavbarItem>
           </>
-        }
-        {isAuthenticated &&
+        )}
+        {isAuthenticated && (
           <>
-            <NavbarItem
-              className="cursor-pointer hover"
-              onClick={handleUsers}
-            >
+            <NavbarItem className="cursor-pointer hover" onClick={handleUsers}>
               Users
             </NavbarItem>
-            <NavbarItem
-              className="cursor-pointer hover"
-              onClick={handleProfile}
-            >
+            <NavbarItem className="cursor-pointer hover" onClick={handleProfile}>
               Profile
               {/* {theme === "light" ? <FaRegMoon /> : <LuSunMedium />} */}
             </NavbarItem>
-            <NavbarItem
-              className="cursor-pointer hover"
-              onClick={handleChat}
-            >
+            <NavbarItem className="cursor-pointer hover" onClick={handleChat}>
               Chat
               {/* {theme === "light" ? <FaRegMoon /> : <LuSunMedium />} */}
             </NavbarItem>
+            <NavbarItem className="cursor-pointer hover" onClick={handleChats}>
+              Chats
+              {/* {theme === "light" ? <FaRegMoon /> : <LuSunMedium />} */}
+            </NavbarItem>
+            <NavbarItem className="cursor-pointer hover" onClick={handleLogout}>
+              Logout
+              {/* {theme === "light" ? <FaRegMoon /> : <LuSunMedium />} */}
+            </NavbarItem>
           </>
-        }
+        )}
         <NavbarItem>
           {/* {isAuthenticated && (
                         <Button
