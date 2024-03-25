@@ -4,6 +4,7 @@ import { PersistStorage, persist } from 'zustand/middleware'
 
 interface IPersistAuth {
   access_token: string
+  refresh_token: string
 }
 
 interface IAuth extends IPersistAuth {
@@ -12,6 +13,7 @@ interface IAuth extends IPersistAuth {
   login: (login: string, password: string) => Promise<string>
   register: (username: string, email: string, password: string) => Promise<string>
   logout: () => Promise<void>
+  refreshAccessToken: () => Promise<void>
 }
 
 export type RegisterResponse = {
@@ -19,22 +21,30 @@ export type RegisterResponse = {
     email: string
     username: string
     accessToken: string
+    refreshToken: string
   }
+}
+
+export type TokenResponse = {
+  accessToken: string
 }
 
 export type LoginResponse = {
   user: {
     accessToken: string
+    refreshToken: string
     token_type: string
   }
 }
 // PersistOptions<IAuth, IPersistAuth>
 export const useAuthStore = create<IAuth>()(
   persist(
+    //@ts-expect-error
     (set, get) => ({
       status: 'done' as const,
       error: '',
       access_token: '',
+      refresh_token: '',
       login: async (email: string, password: string) => {
         console.log(email, password)
 
@@ -45,10 +55,10 @@ export const useAuthStore = create<IAuth>()(
         try {
           const res = await apiService.post('api/auth', { email, password })
           console.log('apiService')
-          const {user} = (await res.json()) as LoginResponse
+          const { user } = (await res.json()) as LoginResponse
           console.log('user', user)
 
-          set({ status: 'success', access_token: user.accessToken })
+          set({ status: 'success', access_token: user.accessToken, refresh_token: user.refreshToken })
           return Promise.resolve('success')
         } catch (error) {
           console.log('login', { error })
@@ -56,6 +66,22 @@ export const useAuthStore = create<IAuth>()(
           set({ status: 'error', error: `Не правильный email или password` || 'error' })
           cleanError(set)
           return Promise.resolve('error')
+        }
+      },
+      refreshAccessToken: async () => {
+        set({ status: 'loading' })
+        try {
+          console.log('get().refresh_tokenget().refresh_token', get().refresh_token)
+
+          const res = await apiService.post('api/refresh', { refreshToken: get().refresh_token }, {})
+          const parsed = (await res.json()) as TokenResponse
+          if (parsed.accessToken) {
+            set({ status: 'success', access_token: parsed.accessToken })
+          }
+          // get().login(user.email, password)
+        } catch (error) {
+          set({ status: 'error', error: `Возникла ошибка попробуйте снова чуть позже` || 'error' })
+          cleanError(set)
         }
       },
       register: async (username: string, email: string, password: string) => {
@@ -71,7 +97,7 @@ export const useAuthStore = create<IAuth>()(
           const { user } = (await res.json()) as RegisterResponse
           console.log({ user }, user.email)
           // get().login(user.email, password)
-          set({ status: 'success', access_token: user.accessToken  })
+          set({ status: 'success', access_token: user.accessToken })
           return Promise.resolve('success')
         } catch (error) {
           set({ status: 'error', error: `Возникла ошибка попробуйте снова чуть позже` || 'error' })
@@ -104,7 +130,10 @@ export const useAuthStore = create<IAuth>()(
       name: 'auth-storage',
       partialize: (state: IAuth) => {
         // as PersistStorage<IPersistAuth>'
-        return { access_token: state.access_token } as unknown as PersistStorage<IPersistAuth>
+        return {
+          access_token: state.access_token,
+          refresh_token: state.refresh_token,
+        } as unknown as PersistStorage<IPersistAuth>
       },
     },
   ),
@@ -122,10 +151,14 @@ function cleanError(
 }
 
 export const tokenHeader = (): Record<string, string> => {
-  const token = useAuthStore.getState().access_token
+  let token = useAuthStore.getState().access_token
   return token
     ? {
         Authorization: 'Bearer ' + token,
       }
     : {}
+}
+
+export const refreshAccessToken = (): Promise<void> => {
+  return useAuthStore.getState().refreshAccessToken()
 }

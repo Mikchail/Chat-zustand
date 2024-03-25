@@ -14,7 +14,7 @@ type Props = {
 
 export const ChatsContainer = ({ rooms, status, currentUser, openChat }: Props) => {
   const isLoading = status === 'loading'
-  if(!("length" in rooms)) {
+  if(!rooms || !("length" in rooms)) {
     return null
   }
   const renderItem = useCallback(

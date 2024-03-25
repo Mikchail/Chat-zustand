@@ -1,6 +1,5 @@
 import { apiService } from '../../api/api'
 import { create } from 'zustand'
-import { tokenHeader } from '../AuthModule/authStore'
 import { User } from '../../types/User'
 import { Room, Message, MessageText } from '../../types/Chat'
 // import { makeNavigateToChat } from '../../services/NavigationsService';
@@ -50,23 +49,16 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   messages: [],
 
   getChats: async (userId: string) => {
-    console.log('userId', userId)
-
     try {
       const query = await apiService.post(
         'api/rooms',
         {
           userId,
         },
-        {
-          ...tokenHeader(),
-        },
+        {},
       )
 
-      console.log({ query })
       const responce = (await query.json()) as IRoomResponse
-      console.log(responce.rooms)
-
       // const rooms = [...get().rooms]
       // rooms.push(room)
       set({ status: 'success', rooms: responce.rooms })
@@ -88,14 +80,12 @@ export const useChatStore = create<IChatStore>((set, get) => ({
         {
           userId: userId,
         },
-        {
-          ...tokenHeader(),
-        },
+        {},
       )
 
-      console.log({query});
+      console.log({ query })
       const room = (await query.json()) as Room
-      console.log({room});
+      console.log({ room })
       const rooms = [...get().rooms]
       rooms.push(room)
       set({ status: 'success', rooms })
@@ -110,7 +100,6 @@ export const useChatStore = create<IChatStore>((set, get) => ({
       'api/room/' + roomId,
       {},
       {
-        ...tokenHeader(),
       },
     )
     const room = (await query.json()) as Room
@@ -121,7 +110,6 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   },
   getRoomByUserId: async (roomId: string) => {
     const query = await apiService.post('room/' + roomId, {
-      ...tokenHeader(),
     })
     const room = (await query.json()) as Room
     console.log({ room })
@@ -131,7 +119,6 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   fetchMessages: async (chatId: string) => {
     try {
       const query = await apiService.get(`api/message/${chatId}`, {
-        ...tokenHeader(),
       })
 
       const message = (await query.json()) as MessageDto[]
@@ -149,8 +136,8 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   loadMore: async () => {},
   addMessage: async (message: MessageText, chatId: string) => {
     set({ status: 'loading' })
-    console.log({message});
-    
+    console.log({ message })
+
     try {
       const query = await apiService.post(
         `api/message/${chatId}`,
@@ -158,7 +145,6 @@ export const useChatStore = create<IChatStore>((set, get) => ({
           text: message.text,
         },
         {
-          ...tokenHeader(), 
         },
       )
 
@@ -178,7 +164,7 @@ type MessageDto = {
   roomId: number
   text: string
   createdAt: Date
-  userId: number,
+  userId: number
   user: AuthorDto
   // message_author: AuthorDto
 }
