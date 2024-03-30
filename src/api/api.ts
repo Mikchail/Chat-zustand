@@ -145,7 +145,7 @@ class ApiService {
       })
   }
 }
-
+let attempts = 3
 const apiService = new ApiService('http://127.0.0.1:3000/')
 apiService.interceptors.request.use((request) => {
   apiService.beforeRequestHooks.forEach((hook) => hook(request))
@@ -175,13 +175,13 @@ apiService.interceptors.response.use(
     // console.log({ error })
     if (!originRequest._isRetry) {
       try {
-        console.log('in if statement')
+        console.log('in if statement', originRequest)
         originRequest._isRetry = true
         await refreshAccessToken()
         await apiService.apiFetch(originRequest)
         // await apiService.post("auth/jwt/logout", {})
       } catch (error2) {
-        console.log('ЭТО ГОВНО - catch ', { error2 })
+        console.log('ЭТО ГОВНО - catch ', { error2 }, originRequest)
       }
     }
   },

@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { uuidv4 } from '../../../utils'
 import { Message, MessageImage, MessagePartialText, MessageText } from '../../../types/Chat'
-import { getMessagesSelector, getRoomSelector, useChatStore } from '../chatStore'
+import { IChatStore, getMessagesSelector, getRoomSelector, useChatStore } from '../chatStore'
 import { getUserSelector, useUserStore } from '@/modules/UserModule'
-import { ChatContainer } from '../components/ChatContainer'
+import { ChatContainer, ScrollHandle } from '../components/ChatContainer'
+import { socket } from '@/api/socket'
+import { Socket, io } from 'socket.io-client'
 
 type ChatProps = {}
 
@@ -15,53 +17,72 @@ export const ChatPage: React.FC<ChatProps> = () => {
     navigate('/')
   }
   let chatId = params.chatId as string
-  // console.log('chatId', chatId)
-  // var ws = React.useRef(new WebSocket('ws://w567l.sse.codesandbox.io/')).current;
-  // const room = useChatStore((state) => getRoomSelector(state, chatId))
-
-  const messages = useChatStore((state) => getMessagesSelector(state, chatId))
+  const scrollElementRef = useRef<ScrollHandle>(null)
+  const getMessages = useCallback((state: IChatStore) => getMessagesSelector(state, chatId), [chatId])
+  const messages = useChatStore(getMessages)
   const currentUser = useUserStore(getUserSelector)
-  const addMessage = useChatStore((state) => state.addMessage)
+  const addMessageToState = useChatStore((state) => state.addMessage)
   const getRoomByRoomId = useChatStore((state) => state.getRoomByRoomId)
+  // const status = useChatStore((state) => state.status)
   const fetchMessages = useChatStore((state) => state.fetchMessages)
+  const socketRef = useRef<Socket<any, any> | null>(null)
   // console.log({ currentUser })
 
   useEffect(() => {
-    // const serverMessagesList = [];
-    // ws.onopen = () => {
-    //   setServerState('Connected to the server')
-    //   setDisableButton(false);
-    // };
-    // ws.onclose = (e) => {
-    //   setServerState('Disconnected. Check internet or server.')
-    //   setDisableButton(true);
-    // };
-    // ws.onerror = (e) => {
-    //   setServerState(e.message);
-    // };
-    // ws.onmessage = (e) => {
-    //   serverMessagesList.push(e.data);
-    //   setServerMessages([...serverMessagesList])
-    // };
-console.log("render");
+    // отправляем запрос на получение сообщений
+    if (currentUser.id && params.chatId) {
+      socketRef.current = io('http://127.0.0.1:3000/', {
+        query: { roomId: chatId },
+      })
+      // socketRef.current.emit('message:get')
+      socketRef.current.emit('user:add', currentUser)
+      socketRef.current.on('message', (message: Message) => {
+        addMessageToState(message, chatId)
+        // scrollElementRef.current?.scrollDown()
+      })
+    }
+
+    // обрабатываем получение сообщений
+    //  socketRef.current.on('messages', (messages) => {
+    //    // определяем, какие сообщения были отправлены данным пользователем,
+    //    // если значение свойства "userId" объекта сообщения совпадает с id пользователя,
+    //    // то добавляем в объект сообщения свойство "currentUser" со значением "true",
+    //    // иначе, просто возвращаем объект сообщения
+    //    const newMessages = messages.map((msg) =>
+    //      msg.userId === userId ? { ...msg, currentUser: true } : msg
+    //    )
+    //    // обновляем массив сообщений
+    //    setMessages(newMessages)
+    //  })
 
     if (params.chatId) {
       getRoomByRoomId(params.chatId)
       fetchMessages(params.chatId)
     }
-  }, [])
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+      }
+    }
+  }, [currentUser.id])
+
+  const loadMore = useCallback(() => {
+    if (params.chatId) {
+      fetchMessages(params.chatId)
+    }
+  }, [params.chatId])
 
   const onSend = useCallback((message: string) => {
-    const textMessage: MessageText = {
-      author: currentUser,
-      createdAt: Date.now(),
-      id: uuidv4(),
-      roomId: chatId,
-      text: message,
-      type: 'text',
+    if (params.chatId) {
+      if (socketRef.current) {
+        socketRef.current.emit('message:add', { message: message })
+      }
     }
-    addMessage(textMessage, chatId)
   }, [])
+console.log({messages});
 
-  return <ChatContainer onSend={onSend} messages={messages} user={currentUser} />
+  return (
+    <ChatContainer onSend={onSend} loadMore={loadMore} messages={messages} user={currentUser} ref={scrollElementRef} />
+  )
 }

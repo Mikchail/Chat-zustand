@@ -1,17 +1,27 @@
+// import { messages } from './../../__mock__/messages'
 import { apiService } from '../../api/api'
 import { create } from 'zustand'
 import { User } from '../../types/User'
 import { Room, Message, MessageText } from '../../types/Chat'
 // import { makeNavigateToChat } from '../../services/NavigationsService';
 import { uuidv4 } from '../../utils'
-import { chats, messages, newMessages } from '../../__mock__/messages'
+// import { chats, messages, newMessages } from '../../__mock__/messages'
 
-interface IChatStore {
+export interface IChatStore {
   status: 'initializing' | 'loading' | 'success' | 'error'
   error: string
   rooms: Room[]
   room: Room | null
   messages: Message[]
+  messagesNew: Record<
+    string,
+    {
+      messages: Message[]
+      total: number
+      limit: number
+      offset: number
+    }
+  >
   getChats: (userId: string) => void
   // gethMessages: (chatId: string) => Promise<Message[]>;
   fetchMessages: (chatId: string) => Promise<void>
@@ -47,6 +57,7 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   rooms: [],
   room: null,
   messages: [],
+  messagesNew: {},
 
   getChats: async (userId: string) => {
     try {
@@ -85,7 +96,6 @@ export const useChatStore = create<IChatStore>((set, get) => ({
 
       console.log({ query })
       const room = (await query.json()) as Room
-      console.log({ room })
       const rooms = [...get().rooms]
       rooms.push(room)
       set({ status: 'success', rooms })
@@ -96,37 +106,60 @@ export const useChatStore = create<IChatStore>((set, get) => ({
     }
   },
   getRoomByRoomId: async (roomId: string) => {
-    const query = await apiService.post(
-      'api/room/' + roomId,
-      {},
-      {
-      },
-    )
+    const query = await apiService.post('api/room/' + roomId, {}, {})
     const room = (await query.json()) as Room
-    console.log({ room })
     set({ room: room })
     // const rooms = get().rooms
     // return rooms.find((room) => room.id === chatId)
   },
   getRoomByUserId: async (roomId: string) => {
-    const query = await apiService.post('room/' + roomId, {
-    })
+    const query = await apiService.post('room/' + roomId, {})
     const room = (await query.json()) as Room
-    console.log({ room })
     set({ room: room })
     // return room
   },
   fetchMessages: async (chatId: string) => {
     try {
-      const query = await apiService.get(`api/message/${chatId}`, {
+      if (get().status === 'loading') {
+        return
+      }
+      set({ status: 'loading' })
+      const messagesOld = get().messagesNew
+      const messagesByChatId = messagesOld[chatId] || {
+        messages: [],
+        offset: 0,
+        limit: 10,
+        total: 0,
+      }
+
+      // console.log('FINISH', messagesByChatId.offset, messagesByChatId.total)
+      if (messagesByChatId.total && messagesByChatId.offset >= messagesByChatId.total) {
+        set({ status: 'success' })
+        return
+      }
+      const queryParams = new URLSearchParams()
+      queryParams.append('limit', messagesByChatId.limit.toString())
+      queryParams.append('offset', messagesByChatId.offset.toString())
+      queryParams.append('loadedMessageIds', JSON.stringify([])) // not work
+      const query = await apiService.get(`api/message/${chatId}?${queryParams}`, {})
+      const response = (await query.json()) as { items: MessageDto[]; total: number }
+      const transformedMessages = response.items.map((message) => trasformMessage(message))
+      // const messages = [...get().messages].concat(transformedMessages)
+      // console.log({ messages })
+      const newOffset = messagesByChatId.offset + messagesByChatId.limit
+      messagesByChatId.messages = transformedMessages.concat(messagesByChatId.messages)
+      set({
+        status: 'success',
+        messagesNew: {
+          ...messagesOld,
+          [chatId]: {
+            ...messagesByChatId,
+            messages: messagesByChatId.messages,
+            total: response.total,
+            offset: response.total ? Math.min(newOffset, response.total) : newOffset,
+          },
+        },
       })
-
-      const message = (await query.json()) as MessageDto[]
-      const transformedMessages = message.map((message) => trasformMessage(message))
-      const messages = [...get().messages].concat(transformedMessages)
-      console.log({ messages })
-
-      set({ status: 'success', messages: transformedMessages })
     } catch (error) {
       console.log({ error })
       set({ status: 'error', error: `Возникла ошибка попробуйте снова чуть позже` || 'error' })
@@ -135,22 +168,39 @@ export const useChatStore = create<IChatStore>((set, get) => ({
   },
   loadMore: async () => {},
   addMessage: async (message: MessageText, chatId: string) => {
-    set({ status: 'loading' })
-    console.log({ message })
-
+   
+    const messagesOld = get().messagesNew
+    const messagesByChatId = messagesOld[chatId] || {
+      messages: [],
+      offset: 0,
+      limit: 10,
+      total: 0,
+    }
     try {
-      const query = await apiService.post(
-        `api/message/${chatId}`,
-        {
-          text: message.text,
-        },
-        {
-        },
-      )
+      if (get().status === 'loading') {
+        return
+      }
+      set({ status: 'loading' })
+      // const query = await apiService.post(
+      //   `api/message/${chatId}`,
+      //   {
+      //     text: message.text,
+      //   },
+      //   {},
+      // )
 
-      const response = await query.json()
-      const messages = [...get().messages, trasformMessage(response)]
-      set({ status: 'success', messages })
+      // const response = await query.json()
+      messagesByChatId.messages = [...messagesByChatId.messages, trasformMessage(message)]
+      set({
+        status: 'success',
+        messagesNew: {
+          ...messagesOld,
+          [chatId]: {
+            ...messagesByChatId,
+            offset: messagesByChatId.offset + 1
+          },
+        },
+      })
     } catch (error) {
       console.log({ error })
       set({ status: 'error', error: `Возникла ошибка попробуйте снова чуть позже` || 'error' })
@@ -190,7 +240,7 @@ const trasformMessage = (message: MessageDto): Message => {
     roomId: message.roomId.toString(),
     userId: message.userId.toString(),
     text: message.text,
-    createdAt: new Date(message.createdAt).getDate(),
+    createdAt: new Date(message.createdAt).getTime(),
     // createdAt: message.created_at,
     author: {
       id: message.user?.id.toString(),
@@ -218,11 +268,12 @@ export const getRoomByUserId = (state: IChatStore, userId: string) => {
   })
 }
 
-export const getMessagesSelector = (state: IChatStore, chatId: string) => {
-  const messages = state.messages
-    .filter((item: Message) => item.roomId?.toString() === chatId.toString())
-    .sort((a: any, b: any) => {
-      return b.createdAt - a.createdAt
-    })
+export const getMessagesSelector = (state: IChatStore, roomId: string) => {
+  if (!state.messagesNew?.[roomId]?.messages) {
+    return null
+  }
+  const messages = state.messagesNew[roomId].messages.sort((a: any, b: any) => {
+    return a.createdAt - b.createdAt
+  })
   return messages
 }

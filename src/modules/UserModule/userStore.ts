@@ -36,7 +36,6 @@ export const useUserStore = create<IUserStore>((set, get) => ({
       })
 
       const user = (await res.json()) as IUserResponse
-      console.log(user)
       set({ status: 'success', currentUser: transformUser(user) })
     } catch (error) {
       console.log({ error })
